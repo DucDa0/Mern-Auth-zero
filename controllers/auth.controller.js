@@ -38,7 +38,7 @@ exports.registerController=(req,res)=>{
             },
             process.env.JWT_ACCOUNT_ACTIVATION,
             {
-                expiresIn: '15m'
+                expiresIn: '5m'
             }
         )
         //* email sending
@@ -65,7 +65,7 @@ exports.registerController=(req,res)=>{
         transporter.sendMail(mainOptions, function(err, info){
             if(!err){
                 return res.json({
-                    message: `Email has been sent to ${email}`
+                    message: `An email has been sent to ${email}`
                 }).catch(err=>{
                     return res.status(400).json({
                         success: false,
@@ -103,7 +103,7 @@ exports.activationController=(req,res)=>{
                     }else{
                         return res.json({
                             success: true,
-                            message: 'Signup Success',
+                            message: 'Actived success, u can sign in now',
                         })
                     }
                 })
@@ -137,7 +137,7 @@ exports.loginController=(req,res)=>{
             //* authenticate
             if(!user.authenticate(password)){
                 return res.status(400).json({
-                    error: 'Email and password do not match'
+                    error: 'Email and password does not match'
                 })
             }
             //*generate token
@@ -199,7 +199,6 @@ exports.forgetController=(req,res)=>{
         //* find if user exists
         User.findOne({email},(err,user)=>{
             if(err||!user){
-                console.log('asdsd')
                 return res.status(400).json({
                     error:'User with that email does not exist'
                 })
@@ -243,7 +242,7 @@ exports.forgetController=(req,res)=>{
                         transporter.sendMail(mainOptions, function(err, info){
                             if(!err){
                                 return res.json({
-                                    message: `Email has been sent to ${email}`
+                                    message: `An email has been sent to ${email}`
                                 }).catch(err=>{
                                     return res.json({
                                         error: errorHandler(err)
@@ -384,7 +383,6 @@ exports.facebookController=(req,res)=>{
         method: 'GET'
         })
         .then(response => response.json())
-        // .then(response => console.log(response))
         .then(response => {
             const { email, name } = response;
             User.findOne({ email }).exec((err, user) => {
@@ -402,7 +400,6 @@ exports.facebookController=(req,res)=>{
                 user = new User({ name, email, password });
                 user.save((err, data) => {
                 if (err) {
-                    console.log('ERROR FACEBOOK LOGIN ON USER SAVE', err);
                     return res.status(400).json({
                     error: 'User signup failed with facebook'
                     });

@@ -1,68 +1,57 @@
-const mongoose=require('mongoose');
-const crypto=require('crypto');
-
-
+const mongoose = require('mongoose');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 //*user schema
-const userSchema=new mongoose.Schema({
-    email:{
-        type:String,
-        trim: true,
-        required:true,
-        unique: true,
-        lowercase: true,
+const UserSchema = new mongoose.Schema(
+  {
+    email: {
+      type: String,
+      trim: true,
+      required: true,
+      unique: true,
+      lowercase: true,
     },
-    name:{
-        type: String,
-        trim:true,
-        required:true
+    name: {
+      type: String,
+      trim: true,
+      required: true,
     },
-    hashed_password:{
-        type: String,
-        trim: true,
-        required: true
+    password: {
+      type: String,
+      trim: true,
+      required: true,
     },
-    salt: {
-        type: String
+    avatar: {
+      type: String,
+      default:
+        'https://res.cloudinary.com/douy56nkf/image/upload/v1594060920/defaults/txxeacnh3vanuhsemfc8.png',
     },
     role: {
-        type: String,
-        default: 'normal-user'
-      },
-    resetPasswordLink:{
-        data: String,
-        default:''
-    }
-},{timestamps: true});
-
-//* virtual password
-userSchema.virtual('password')
-.set(function(password){
-    this._password=password;
-    this.salt=this.makeSalt();
-    this.hashed_password=this.encryptPassword(password);
-})
-.get(function(){
-    return this._password
-})
-
-userSchema.methods={
-    //* compare pass between plain text from user and hased pwd
-    authenticate: function(plainPassword){
-        return this.encryptPassword(plainPassword)===this.hashed_password;
+      type: String,
+      default: 'member',
     },
-    // * encrypt pass
-    encryptPassword: function(password){
-        if(!password) return;
-        try{
-            return crypto.createHmac('sha1',this.salt).update(password).digest('hex');
-        }catch(err){
-            return '';
-        }
+    resetPasswordLink: {
+      data: String,
+      default: '',
     },
-    //* generate salt;
-    makeSalt: function(){
-        return Math.round(new Date().valueOf()*Math.random())+'';
-    },
-}
+  },
+  { timestamps: true }
+);
 
-module.exports=mongoose.model('User',userSchema);
+UserSchema.pre('save', async function (next) {
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+  next();
+});
+
+UserSchema.methods.genJwtToken = function () {
+  return jwt.sign({ id: this._id }, process.env.JWT_SECRET, {
+    expiresIn: '7d',
+  });
+};
+
+UserSchema.methods.checkPassword = async function (password) {
+  return await bcrypt.compare(password, this.password);
+};
+
+module.exports = mongoose.model('User', UserSchema);
